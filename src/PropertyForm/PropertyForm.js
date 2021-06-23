@@ -18,7 +18,7 @@ const PropertyForm = () => {
         type: lsFormData.type,
         area: lsFormData.area,
         extraDescription: lsFormData.extraDescription,
-        price: parseInt(lsFormData.price, 10),
+        price: lsFormData.price,
       });
     } else {
       setFormData({
@@ -26,7 +26,7 @@ const PropertyForm = () => {
         type: "",
         area: "",
         extraDescription: "",
-        price: null,
+        price: "",
       });
     }
   }, []);
@@ -62,15 +62,21 @@ const PropertyForm = () => {
               <Form.Label>Title</Form.Label>
               <Form.Control
                 onChange={(e) => setField("title", e.target.value)}
+                isInvalid={Boolean(errors.title)}
                 type="text"
                 placeholder="Classified title up to 155 characters"
                 value={formData.title}
               />
+
+              <Form.Control.Feedback type="invalid">
+                {errors.title}
+              </Form.Control.Feedback>
             </Form.Group>
             <Form.Group className="mt-2">
               <Form.Label>Type</Form.Label>
               <Form.Control
                 onChange={(e) => setField("type", e.target.value)}
+                isInvalid={Boolean(errors.type)}
                 as="select"
                 className="browser-default"
                 value={formData.type}
@@ -81,24 +87,35 @@ const PropertyForm = () => {
                 <option value="exchange">Exchange</option>
                 <option value="donation">Donation</option>
               </Form.Control>
+              <Form.Control.Feedback type="invalid">
+                {errors.type}
+              </Form.Control.Feedback>
             </Form.Group>
             <Form.Group className="mt-2">
               <Form.Label>Area</Form.Label>
               <Form.Control
                 onChange={(e) => setField("area", e.target.value)}
+                isInvalid={Boolean(errors.area)}
                 type="text"
                 placeholder="Type in the property's area"
                 value={formData.area}
               />
+              <Form.Control.Feedback type="invalid">
+                {errors.area}
+              </Form.Control.Feedback>
             </Form.Group>
             <Form.Group className="mt-2">
               <Form.Label>Price</Form.Label>
               <Form.Control
                 onChange={(e) => setField("price", e.target.value)}
+                isInvalid={Boolean(errors.price)}
                 type="number"
                 placeholder="Amount"
                 value={formData.price}
               />
+              <Form.Control.Feedback type="invalid">
+                {errors.price}
+              </Form.Control.Feedback>
             </Form.Group>
             <Form.Group className="mt-2">
               <Form.Label>Extra description</Form.Label>
@@ -112,7 +129,7 @@ const PropertyForm = () => {
             <Button
               variant="outline-primary"
               type="submit"
-              className="mt-2 w-100"
+              className="mt-3 w-100"
             >
               Submit
             </Button>
