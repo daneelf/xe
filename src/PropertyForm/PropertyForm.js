@@ -4,10 +4,16 @@ import Button from "react-bootstrap/Button";
 import Col from "react-bootstrap/Col";
 import Row from "react-bootstrap/Row";
 import validate from "./validations";
+import Autosuggest from "react-autosuggest";
+import styles from "./PropertyForm.module.css";
+import axios from "axios";
+import cs from "classnames";
 
 const PropertyForm = () => {
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({});
+  const [suggestions, setSuggestions] = useState([]);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     const lsFormData = JSON.parse(localStorage.getItem("formData"));
@@ -48,6 +54,58 @@ const PropertyForm = () => {
     localStorage.setItem("formData", JSON.stringify(formData));
   };
 
+  const getSuggestions = (value) => {
+    if (value.length >= 3) {
+      return new Promise((resolve) => {
+        axios(`/places/autocomplete?input=${value}`)
+          .catch((error) => {
+            console.log(error);
+          })
+          .then((response) => {
+            console.log(response);
+
+            !response || response.data.error
+              ? resolve([])
+              : resolve(response.data);
+          });
+      });
+    }
+  };
+
+  const onSuggestionsFetchRequested = async ({ value }) => {
+    const fetchedSuggestions =
+      value.length >= 3 ? await getSuggestions(value) : [];
+    setSuggestions(fetchedSuggestions);
+  };
+
+  const onSuggestionsClearRequested = () => {
+    setSuggestions([]);
+  };
+
+  const onSuggestionSelected = (event, { suggestion }) => {
+    setField("area", { id: suggestion.placeId, text: suggestion.mainText });
+  };
+
+  const getSuggestionValue = (suggestion) => suggestion.mainText;
+
+  const renderSuggestion = (suggestion) => <div>{suggestion.mainText}</div>;
+
+  const onQueryChange = (event, { newValue }) => {
+    setQuery(newValue);
+  };
+
+  const inputStyles = cs({
+    "form-control": true,
+    "is-invalid": Boolean(errors.area),
+  });
+
+  const inputProps = {
+    placeholder: "Area",
+    className: inputStyles,
+    value: query,
+    onChange: onQueryChange,
+  };
+  
   return (
     <div className="d-flex flex-column align-items-center">
       <h1>New property classified</h1>
@@ -78,7 +136,6 @@ const PropertyForm = () => {
                 onChange={(e) => setField("type", e.target.value)}
                 isInvalid={Boolean(errors.type)}
                 as="select"
-                className="browser-default"
                 value={formData.type}
               >
                 <option value="">Select type:</option>
@@ -93,16 +150,22 @@ const PropertyForm = () => {
             </Form.Group>
             <Form.Group className="mt-2">
               <Form.Label>Area</Form.Label>
-              <Form.Control
-                onChange={(e) => setField("area", e.target.value)}
-                isInvalid={Boolean(errors.area)}
-                type="text"
-                placeholder="Type in the property's area"
-                value={formData.area}
+
+              <Autosuggest
+                suggestions={suggestions}
+                onSuggestionsFetchRequested={onSuggestionsFetchRequested}
+                onSuggestionsClearRequested={onSuggestionsClearRequested}
+                onSuggestionSelected={onSuggestionSelected}
+                getSuggestionValue={getSuggestionValue}
+                renderSuggestion={renderSuggestion}
+                inputProps={inputProps}
+                focusInputOnSuggestionClick={true}
+                highlightFirstSuggestion={true}
+                theme={styles}
               />
-              <Form.Control.Feedback type="invalid">
-                {errors.area}
-              </Form.Control.Feedback>
+              {Boolean(errors.area) && (
+                <div className={styles["invalid-area"]}>{errors.area}</div>
+              )}
             </Form.Group>
             <Form.Group className="mt-2">
               <Form.Label>Price</Form.Label>
