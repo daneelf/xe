@@ -7,7 +7,7 @@ const validate = (formData) => {
 
   if (!type || type === "") errors.type = "Please select a type";
 
-  if (!area) errors.area = "Please select an area";
+  if (!area || area.mainText === "") errors.area = "Please select an area";
 
   if (!price || price === "") errors.price = "Please enter a price";
   else if (parseInt(price) <=0)

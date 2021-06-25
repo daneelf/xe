@@ -8,29 +8,31 @@ import Autosuggest from "react-autosuggest";
 import styles from "./PropertyForm.module.css";
 import axios from "axios";
 import cs from "classnames";
+import Alert from "react-bootstrap/Alert";
 
 const PropertyForm = () => {
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({});
   const [suggestions, setSuggestions] = useState([]);
   const [query, setQuery] = useState("");
+  const [succesMessage, showSuccessMessage] = useState(false);
 
   useEffect(() => {
     const lsFormData = JSON.parse(localStorage.getItem("formData"));
-
-    if (localStorage.getItem("formData")) {
+    if (Boolean(lsFormData)) {
       setFormData({
         title: lsFormData.title,
         type: lsFormData.type,
-        area: lsFormData.area,
+        area: lsFormData.area?.text,
         extraDescription: lsFormData.extraDescription,
         price: lsFormData.price,
       });
+      setQuery(lsFormData.area?.mainText || "");
     } else {
       setFormData({
         title: "",
         type: "",
-        area: "",
+        area: {},
         extraDescription: "",
         price: "",
       });
@@ -38,20 +40,51 @@ const PropertyForm = () => {
   }, []);
 
   const setField = (field, value) => {
-    setFormData({
-      ...formData,
-      [field]: value,
-    });
-  };
-
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
-    const validationErrors = validate(formData);
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
+    if (field === "area") {
+      setFormData({
+        ...formData,
+        area: {
+          placeId: value.placeId,
+          mainText: value.mainText,
+        },
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [field]: value,
+      });
     }
 
     localStorage.setItem("formData", JSON.stringify(formData));
+  };
+  const onBlur = () => {
+    localStorage.setItem("formData", JSON.stringify(formData));
+  };
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    const validationErrors = validate(formData);
+    const hasErrors = Object.keys(validationErrors).length > 0;
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+    }
+    if (!hasErrors) {
+      console.info('Data sent:', formData)
+      setErrors({});
+      handleClearForm();
+      handleShowSuccessMessage();
+    }
+  };
+
+  const handleClearForm = () => {
+    localStorage.setItem("formData", JSON.stringify({}));
+    setFormData({
+      title: "",
+      type: "",
+      area: "",
+      extraDescription: "",
+      price: "",
+    });
+    setQuery("");
   };
 
   const getSuggestions = (value) => {
@@ -62,8 +95,6 @@ const PropertyForm = () => {
             console.log(error);
           })
           .then((response) => {
-            console.log(response);
-
             !response || response.data.error
               ? resolve([])
               : resolve(response.data);
@@ -83,15 +114,28 @@ const PropertyForm = () => {
   };
 
   const onSuggestionSelected = (event, { suggestion }) => {
-    setField("area", { id: suggestion.placeId, text: suggestion.mainText });
+    setField("area", {
+      placeId: suggestion.placeId,
+      mainText: suggestion.mainText,
+    });
   };
 
   const getSuggestionValue = (suggestion) => suggestion.mainText;
 
-  const renderSuggestion = (suggestion) => <div>{suggestion.mainText}</div>;
+  const renderSuggestion = (suggestion) => (
+    <div id={suggestion.placeId}>{suggestion.mainText}</div>
+  );
 
   const onQueryChange = (event, { newValue }) => {
     setQuery(newValue);
+    setField("area", { placeId: event.target.id, mainText: newValue });
+  };
+
+  const handleShowSuccessMessage = () => {
+    showSuccessMessage(true);
+    setTimeout(() => {
+      showSuccessMessage(false);
+    }, 5000);
   };
 
   const inputStyles = cs({
@@ -104,11 +148,18 @@ const PropertyForm = () => {
     className: inputStyles,
     value: query,
     onChange: onQueryChange,
+    onBlur: onBlur,
   };
-  
+
   return (
     <div className="d-flex flex-column align-items-center">
-      <h1>New property classified</h1>
+      {succesMessage && (
+        <Alert className="mt-4" variant="success">
+          Congratulations! Your ad is submitted!
+        </Alert>
+      )}
+
+      <h1 className="mt-3">New property classified</h1>
       <Form
         style={{ maxWidth: "500px", width: "100%" }}
         className={"p-2"}
@@ -119,6 +170,7 @@ const PropertyForm = () => {
             <Form.Group className="mt-2">
               <Form.Label>Title</Form.Label>
               <Form.Control
+                onBlur={onBlur}
                 onChange={(e) => setField("title", e.target.value)}
                 isInvalid={Boolean(errors.title)}
                 type="text"
@@ -133,6 +185,7 @@ const PropertyForm = () => {
             <Form.Group className="mt-2">
               <Form.Label>Type</Form.Label>
               <Form.Control
+                onBlur={onBlur}
                 onChange={(e) => setField("type", e.target.value)}
                 isInvalid={Boolean(errors.type)}
                 as="select"
@@ -170,6 +223,7 @@ const PropertyForm = () => {
             <Form.Group className="mt-2">
               <Form.Label>Price</Form.Label>
               <Form.Control
+                onBlur={onBlur}
                 onChange={(e) => setField("price", e.target.value)}
                 isInvalid={Boolean(errors.price)}
                 type="number"
@@ -183,18 +237,22 @@ const PropertyForm = () => {
             <Form.Group className="mt-2">
               <Form.Label>Extra description</Form.Label>
               <Form.Control
+                onBlur={onBlur}
                 onChange={(e) => setField("extraDescription", e.target.value)}
                 as="textarea"
                 placeholder="Type here"
                 value={formData.extraDescription}
               />
             </Form.Group>
-            <Button
-              variant="outline-primary"
-              type="submit"
-              className="mt-3 w-100"
-            >
+            <Button variant="primary" type="submit" className="mt-3 w-100">
               Submit
+            </Button>
+            <Button
+              variant="outline-info"
+              className="mt-3 w-100"
+              onClick={handleClearForm}
+            >
+              Clear form
             </Button>
           </Col>
         </Row>
